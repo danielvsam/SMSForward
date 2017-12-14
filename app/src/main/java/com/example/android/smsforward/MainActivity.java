@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -19,6 +20,7 @@ import android.widget.Toast;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
@@ -26,6 +28,7 @@ import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 
+import static android.R.attr.hideOnContentScroll;
 import static android.R.attr.phoneNumber;
 import static android.icu.lang.UCharacter.GraphemeClusterBreak.L;
 import static android.webkit.ConsoleMessage.MessageLevel.LOG;
@@ -40,6 +43,7 @@ public class MainActivity extends AppCompatActivity
     private String mForwardPhoneNumber = null;
     private String mMessage;
     private boolean forwardToSmsActive = false;
+    String urlString = "https://api.telegram.org/bot489635845:AAGAy5DLIhfmv14QgLhQTAqgrYuvCAs5-MQ/sendMessage?chat_id=507477080&text=Hi+Daniel+test";
 
     public static MainActivity instance() {
         return inst;
@@ -123,25 +127,8 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         }
-
-
-        String urlString = "https://api.telegram.org/"; // URL to call
-        String data = "bot489635845:AAGAy5DLIhfmv14QgLhQTAqgrYuvCAs5-MQ/sendMessage?chat_id=507477080&text=Hi+Daniel+test"; //data to post
-        OutputStream out = null;
-        try {
-            URL url = new URL(urlString);
-            HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
-            out = new BufferedOutputStream(urlConnection.getOutputStream());
-            BufferedWriter writer = new BufferedWriter (new OutputStreamWriter(out, "UTF-8"));
-            writer.write(data);
-            writer.flush();
-            writer.close();
-            out.close();
-            urlConnection.connect();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-
+        PostRequest task = new PostRequest();
+        task.execute();
     }
 
 
@@ -160,6 +147,43 @@ public class MainActivity extends AppCompatActivity
         else {
             forwardToSmsActive = false;
             forwardActive.setText("Activate Forward To SMS");
+        }
+    }
+
+    private class PostRequest extends AsyncTask<String, Void, Void> {
+
+        @Override
+        protected Void doInBackground(String... strings) {
+            // Create URL object
+            URL url = createUrl(urlString);
+
+            HttpURLConnection urlConnection = null;
+            try {
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.setReadTimeout(10000 /* milliseconds */);
+                urlConnection.setConnectTimeout(15000 /* milliseconds */);
+                urlConnection.connect();
+            }
+            catch (IOException e) {
+            }
+            finally {
+                if (urlConnection != null) {
+                    urlConnection.disconnect();
+                }
+            }
+            return null;
+        }
+
+        private URL createUrl(String stringUrl) {
+            URL url = null;
+            try {
+                url = new URL(stringUrl);
+            } catch (MalformedURLException exception) {
+                Log.e("createUrl", "Error with creating URL", exception);
+                return null;
+            }
+            return url;
         }
     }
 }
