@@ -17,33 +17,25 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 
-import static android.R.attr.hideOnContentScroll;
-import static android.R.attr.phoneNumber;
-import static android.icu.lang.UCharacter.GraphemeClusterBreak.L;
-import static android.webkit.ConsoleMessage.MessageLevel.LOG;
-
 public class MainActivity extends AppCompatActivity
         implements ActivityCompat.OnRequestPermissionsResultCallback{
 
     private static final int MY_PERMISSIONS_REQUEST_SEND_SMS = 0;
+    private static final int MY_PERMISSIONS_REQUEST_READ_SMS = 1;
+    private static final int MY_PERMISSIONS_REQUEST_RECEIVE_SMS = 2;
 
     private static MainActivity inst;
     private String mPhoneNumber;
     private String mForwardPhoneNumber = null;
     private String mMessage;
     private boolean forwardToSmsActive = false;
-    String urlString = "https://api.telegram.org/bot489635845:AAGAy5DLIhfmv14QgLhQTAqgrYuvCAs5-MQ/sendMessage?chat_id=507477080&text=Hi+Daniel+test";
 
     public static MainActivity instance() {
         return inst;
@@ -107,6 +99,12 @@ public class MainActivity extends AppCompatActivity
         ActivityCompat.requestPermissions(MainActivity.this,
                 new String[]{Manifest.permission.SEND_SMS},
                 MY_PERMISSIONS_REQUEST_SEND_SMS);
+        ActivityCompat.requestPermissions(MainActivity.this,
+                new String[]{Manifest.permission.READ_SMS},
+                MY_PERMISSIONS_REQUEST_READ_SMS);
+        ActivityCompat.requestPermissions(MainActivity.this,
+                new String[]{Manifest.permission.READ_SMS},
+                MY_PERMISSIONS_REQUEST_RECEIVE_SMS);
 
     }
 
@@ -127,7 +125,7 @@ public class MainActivity extends AppCompatActivity
                 }
             }
         }
-        PostRequest task = new PostRequest();
+        PostTask task = new PostTask();
         task.execute();
     }
 
@@ -149,43 +147,76 @@ public class MainActivity extends AppCompatActivity
             forwardActive.setText("Activate Forward To SMS");
         }
     }
+    
+    public void makePostRequest(View v) throws IOException {
+        Log.e("forward", "Sending to bot");
+        PostTask task = new PostTask();
+        task.execute();
+    }
 
-    private class PostRequest extends AsyncTask<String, Void, Void> {
+    private class PostTask extends AsyncTask<String, Void, String> {
+        private Exception excepion;
 
         @Override
-        protected Void doInBackground(String... strings) {
-            // Create URL object
-            URL url = createUrl(urlString);
+        protected Void doInBackground(String... urls) {
+            String messageToSend= =mMessage.replace(" ","+");
+            URL url = createUrl("https://api.telegram.org/bot489635845:AAGAy5DLIhfmv14QgLhQTAqgrYuvCAs5-MQ/sendMessage?chat_id=507477080&text="+ messageToSend);
 
-            HttpURLConnection urlConnection = null;
+            // Perform HTTP request to the URL and receive a JSON response back
+            String jsonResponse = "";
             try {
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.setReadTimeout(10000 /* milliseconds */);
-                urlConnection.setConnectTimeout(15000 /* milliseconds */);
-                urlConnection.connect();
+                jsonResponse = makeHttpRequest(url);
+            } catch (IOException e) {
+                // TODO Handle the IOException
             }
-            catch (IOException e) {
-            }
-            finally {
-                if (urlConnection != null) {
-                    urlConnection.disconnect();
-                }
-            }
-            return null;
+            return jsonResponse;
         }
+
+        protected void onPostExecute(String getResponse) {
+            System.out.println(getResponse);
+        }
+
 
         private URL createUrl(String stringUrl) {
             URL url = null;
             try {
                 url = new URL(stringUrl);
             } catch (MalformedURLException exception) {
-                Log.e("createUrl", "Error with creating URL", exception);
+                Log.e("Error", "Error with creating URL", exception);
                 return null;
             }
             return url;
         }
     }
+
+    private String makeHttpRequest(URL url) throws IOException {
+        String jsonResponse = "";
+        if(url == null) {
+            return jsonResponse;
+        }
+        HttpURLConnection urlConnection = null;
+        InputStream inputStream = null;
+        try {
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setRequestMethod("GET");
+            urlConnection.setReadTimeout(10000 /* milliseconds */);
+            urlConnection.setConnectTimeout(15000 /* milliseconds */);
+            urlConnection.connect();
+            if(urlConnection.getResponseCode() == 200) {
+                inputStream = urlConnection.getInputStream();
+            }
+        } catch (IOException e) {
+            // TODO: Handle the exception
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
+            if (inputStream != null) {
+                // function must handle java.io.IOException here
+                inputStream.close();
+            }
+        }
+        return jsonResponse;
+    }
+
 }
-
-
