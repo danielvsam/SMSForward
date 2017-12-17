@@ -1,5 +1,6 @@
 package com.example.android.smsforward;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -15,8 +16,6 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-import static android.content.ContentValues.TAG;
 
 /**
  * Created by DANIEL on 06-Dec-17.
@@ -56,7 +55,12 @@ public class SmsService extends Service {
         IntentFilter filter = new IntentFilter();
         filter.addAction("android.provider.Telephony.SMS_RECEIVED");
         registerReceiver(smsReceiver, filter);
-        super.onStartCommand(intent, flags, startId);
+
+        Notification smsNotify = new Notification.Builder(this)
+                .setContentTitle("SMSForward")
+                .setContentText("Forwarding active").build();
+        startForeground(100, smsNotify);   //random id
+//        super.onStartCommand(intent, flags, startId);
         return START_STICKY;
     }
 
@@ -78,7 +82,7 @@ public class SmsService extends Service {
         public void onReceive(Context context, Intent intent) {
 
             Toast.makeText(context, "Message Received!", Toast.LENGTH_SHORT).show();
-            Log.e(TAG, "INCOMING SMS");
+            Log.e("IncomingSms", "INCOMING SMS");
             Bundle bundle = intent.getExtras();
             SmsMessage[] msgs = null;
             String str = "";
@@ -96,8 +100,6 @@ public class SmsService extends Service {
 
                 Log.e("IncomingSms", str);
                 finalMessage = str;
-//                    MainActivity inst = MainActivity.instance();
-//                    inst.forward(str);
                 PostTask task = new PostTask();
                 task.execute();
             }
