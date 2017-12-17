@@ -1,6 +1,7 @@
 package com.example.android.smsforward;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.support.v4.app.ActivityCompat;
@@ -43,8 +44,13 @@ public class MainActivity extends AppCompatActivity
         inst = this;
     }
 
+    public void MainActivity(){
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.e("MainActivity", "Created");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -52,6 +58,8 @@ public class MainActivity extends AppCompatActivity
                 != PackageManager.PERMISSION_GRANTED) {
             requestSMSPermission();
         }
+        Intent service = new Intent(this, SmsService.class);
+        this.startService(service);
     }
 
     public void triggerSend(View view) {
@@ -105,13 +113,14 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void forward(String message) {
+        Log.e("forward", "forward called");
+        mMessage = message;
         if (forwardToSmsActive) {
             Log.e("forward", message);
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS)
                     != PackageManager.PERMISSION_GRANTED) {
                 requestSMSPermission();
             } else {
-                mMessage = message;
                 try {
                     SmsManager smsManager = SmsManager.getDefault();
                     smsManager.sendTextMessage("+91 "+ mForwardPhoneNumber, null, mMessage, null, null);
